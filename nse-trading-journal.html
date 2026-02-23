@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NSE Trading Journal 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg: #050508;
+  --s1: #0a0a10;
+  --s2: #0f0f18;
+  --s3: #141420;
+  --border: #1c1c2e;
+  --border2: #252540;
+  --profit: #00ffaa;
+  --loss: #ff2d55;
+  --warn: #ffb800;
+  --blue: #4dabf7;
+  --text: #c8cce8;
+  --dim: #454560;
+  --dim2: #6a6a90;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body {
+  font-family: 'Share Tech Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* TOP NAV */
+.topnav {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brand {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  background: linear-gradient(90deg, var(--profit), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-tab {
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--dim2);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+}
+.nav-tab:hover { color: var(--text); border-color: var(--border2); }
+.nav-tab.active { color: var(--profit); border-color: var(--profit); background: rgba(0,255,170,0.06); }
+
+.nav-right {
+  font-size: 0.72rem;
+  color: var(--dim2);
+}
+.nav-right span { color: var(--warn); }
+
+/* LAYOUT */
+.app { display: flex; height: calc(100vh - 56px); overflow: hidden; }
+
+/* LEFT SIDEBAR - date list */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--s1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-head {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.month-filter {
+  width: 100%;
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  padding: 8px 10px;
+  outline: none;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.date-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px;
+}
+
+.date-list::-webkit-scrollbar { width: 3px; }
+.date-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+.date-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.date-item:hover { background: var(--s2); border-color: var(--border2); }
+.date-item.selected { background: rgba(0,255,170,0.07); border-color: var(--profit) !important; }
+.date-item.today { border-color: var(--warn) !important; }
+
+.date-item .di-date { font-size: 0.72rem; color: var(--text); }
+.date-item .di-day { font-size: 0.62rem; color: var(--dim2); margin-top: 1px; }
+.date-item .di-val { font-size: 0.72rem; font-weight: 700; }
+.date-item .di-val.profit { color: var(--profit); }
+.date-item .di-val.loss { color: var(--loss); }
+.date-item .di-val.empty { color: var(--dim); }
+
+.date-item .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  position: absolute;
+  left: 4px; top: 50%;
+  transform: translateY(-50%);
+}
+.date-item .dot.profit { background: var(--profit); }
+.date-item .dot.loss { background: var(--loss); }
+
+/* MAIN AREA */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.main::-webkit-scrollbar { width: 4px; }
+.main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ENTRY PANEL */
+.entry-panel {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.panel-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 3px;
+  color: var(--dim2);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.panel-title span { color: var(--text); font-size: 0.9rem; }
+
+.entry-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (max-width: 900px) { .entry-form { grid-template-columns: 1fr 1fr; } }
+
+.form-group label {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--dim2);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  background: var(--s3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--profit); box-shadow: 0 0 0 2px rgba(0,255,170,0.1); }
+.form-group input.loss-mode:focus { border-color: var(--loss); box-shadow: 0 0 0 2px rgba(255,45,85,0.1); }
+
+.save-btn {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--profit), #00cc88);
+  border: none;
+  border-radius: 8px;
+  color: #050508;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+  height: 40px;
+}
+.save-btn:hover { opacity: 0.88; }
+.save-btn:active { transform: scale(0.97); }
+
+.type-toggle { display: flex; gap: 6px; margin-bottom: 6px; }
+.type-btn {
+  flex: 1;
+  padding: 8px 6px;
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  background: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--dim2);
+}
+.type-btn.profit-active { border-color: var(--profit); color: var(--profit); background: rgba(0,255,170,0.08); }
+.type-btn.loss-active { border-color: var(--loss); color: var(--loss); background: rgba(255,45,85,0.08); }
+
+/* SUMMARY STATS */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.stat-box {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.stat-box.profit::before { background: var(--profit); }
+.stat-box.loss::before { background: var(--loss); }
+.stat-box.blue::before { background: var(--blue); }
+.stat-box.warn::before { background: var(--warn); }
+
+.stat-box .sb-label { font-size: 0.6rem; color: var(--dim2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.stat-box .sb-val { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 700; }
+.stat-box .sb-val.p { color: var(--profit); }
+.stat-box .sb-val.l { color: var(--loss); }
+.stat-box .sb-val.b { color: var(--blue); }
+.stat-box .sb-val.w { color: var(--warn); }
+
+/* CHART PANEL */
+.chart-panel {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.chart-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.chart-tab {
+  padding: 6px 14px;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  background: none;
+  color: var(--dim2);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+.chart-tab:hover { color: var(--text); }
+.chart-tab.active { border-color: var(--blue); color: var(--blue); background: rgba(77,171,247,0.08); }
+
+.chart-wrap { position: relative; height: 300px; }
+
+/* TABLE VIEW */
+.table-panel {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.table-head {
+  display: grid;
+  grid-template-columns: 110px 90px 110px 80px 1fr 60px;
+  padding: 10px 16px;
+  background: var(--s3);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.62rem;
+  color: var(--dim2);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 110px 90px 110px 80px 1fr 60px;
+  padding: 9px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 0.78rem;
+  transition: background 0.15s;
+  align-items: center;
+}
+.table-row:hover { background: rgba(255,255,255,0.02); }
+.table-row .tr-profit { color: var(--profit); }
+.table-row .tr-loss { color: var(--loss); }
+.table-row .tr-empty { color: var(--dim); }
+
+.del-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  transition: all 0.2s;
+  font-family: 'Share Tech Mono', monospace;
+}
+.del-btn:hover { color: var(--loss); border-color: var(--loss); background: rgba(255,45,85,0.1); }
+
+.empty-rows { text-align: center; padding: 40px; color: var(--dim); font-size: 0.8rem; }
+
+/* VIEWS */
+.view { display: none; }
+.view.active { display: flex; flex-direction: column; gap: 16px; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+  z-index: 999;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.profit { background: rgba(0,255,170,0.15); border: 1px solid var(--profit); color: var(--profit); }
+.toast.loss { background: rgba(255,45,85,0.15); border: 1px solid var(--loss); color: var(--loss); }
+.toast.info { background: rgba(77,171,247,0.15); border: 1px solid var(--blue); color: var(--blue); }
+
+/* Streak */
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+}
+.streak-badge.fire { background: rgba(255,184,0,0.1); border: 1px solid var(--warn); color: var(--warn); }
+.streak-badge.cold { background: rgba(255,45,85,0.1); border: 1px solid var(--loss); color: var(--loss); }
+
+@media (max-width: 700px) {
+  .app { flex-direction: column; height: auto; }
+  .sidebar { width: 100%; height: 200px; }
+  .table-head, .table-row { grid-template-columns: 90px 80px 80px 70px 1fr; }
+  .table-head span:nth-child(4), .table-row span:nth-child(4) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="topnav">
+  <div class="brand">NSE JOURNAL</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchView('journal')">JOURNAL</button>
+    <button class="nav-tab" onclick="switchView('charts')">CHARTS</button>
+    <button class="nav-tab" onclick="switchView('history')">HISTORY</button>
+  </div>
+  <div class="nav-right">2026 · <span id="totalDays">0</span> TRADING DAYS</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <div style="font-size:0.65rem;color:var(--dim2);letter-spacing:2px;">TRADING DAYS</div>
+      <select class="month-filter" id="monthFilter" onchange="filterMonth()">
+        <option value="ALL">ALL MONTHS</option>
+        <option value="2026-02">FEB 2026</option>
+        <option value="2026-03">MAR 2026</option>
+        <option value="2026-04">APR 2026</option>
+        <option value="2026-05">MAY 2026</option>
+        <option value="2026-06">JUN 2026</option>
+        <option value="2026-07">JUL 2026</option>
+        <option value="2026-08">AUG 2026</option>
+        <option value="2026-09">SEP 2026</option>
+        <option value="2026-10">OCT 2026</option>
+        <option value="2026-11">NOV 2026</option>
+        <option value="2026-12">DEC 2026</option>
+      </select>
+    </div>
+    <div class="date-list" id="dateList"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- JOURNAL VIEW -->
+    <div class="view active" id="view-journal">
+
+      <!-- STATS -->
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <!-- ENTRY FORM -->
+      <div class="entry-panel">
+        <div class="panel-title">ENTRY FOR <span id="selectedDateLabel">— Select a date</span></div>
+
+        <div class="entry-form">
+          <div class="form-group">
+            <label>Type</label>
+            <div class="type-toggle">
+              <button class="type-btn profit-active" id="btnProfit" onclick="setEntryType('profit')">▲ PROFIT</button>
+              <button class="type-btn" id="btnLoss" onclick="setEntryType('loss')">▼ LOSS</button>
+            </div>
+            <input type="hidden" id="entryType" value="profit">
+          </div>
+          <div class="form-group">
+            <label>Amount (₹)</label>
+            <input type="number" id="entryAmt" placeholder="e.g. 12500" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Instrument</label>
+            <select id="entryInstr">
+              <option>NIFTY</option>
+              <option>BANKNIFTY</option>
+              <option>FINNIFTY</option>
+              <option>MIDCPNIFTY</option>
+              <option>SENSEX</option>
+              <option>Stock F&O</option>
+              <option>Equity</option>
+              <option>Crypto</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Note</label>
+            <input type="text" id="entryNote" placeholder="Trade note...">
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;">
+          <button class="save-btn" onclick="saveEntry()">SAVE ENTRY</button>
+          <button class="save-btn" style="background:linear-gradient(135deg,#333,#444);color:var(--text);" onclick="clearEntry()">CLEAR</button>
+          <span id="streakBadge"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CHARTS VIEW -->
+    <div class="view" id="view-charts">
+      <div class="stats-grid" id="statsGrid2"></div>
+
+      <div class="chart-panel">
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="switchChart('daily')">DAILY</button>
+          <button class="chart-tab" onclick="switchChart('weekly')">WEEKLY</button>
+          <button class="chart-tab" onclick="switchChart('monthly')">MONTHLY</button>
+          <button class="chart-tab" onclick="switchChart('cumulative')">CUMULATIVE</button>
+        </div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:0.75rem;color:var(--dim2);letter-spacing:2px;margin-bottom:12px;" id="chartLabel">DAILY P&L — 2026</div>
+        <div class="chart-wrap">
+          <canvas id="mainChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY VIEW -->
+    <div class="view" id="view-history">
+      <div class="table-panel">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-family:'Orbitron',sans-serif;font-size:0.75rem;letter-spacing:3px;color:var(--dim2);">ALL TRADES</span>
+          <span id="historyCount" style="font-size:0.72rem;color:var(--dim2);"></span>
+        </div>
+        <div class="table-head">
+          <span>DATE</span>
+          <span>DAY</span>
+          <span>INSTRUMENT</span>
+          <span>TYPE</span>
+          <span>AMOUNT</span>
+          <span>DEL</span>
+        </div>
+        <div id="historyBody"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── NSE TRADING DAYS 2026 ──────────────────────────────────
+const TRADING_DAYS = [
+  {d:'2026-02-20',day:'Friday'},
+  {d:'2026-02-23',day:'Monday'},
+  {d:'2026-02-24',day:'Tuesday'},
+  {d:'2026-02-25',day:'Wednesday'},
+  {d:'2026-02-26',day:'Thursday'},
+  {d:'2026-02-27',day:'Friday'},
+  {d:'2026-03-02',day:'Monday'},
+  {d:'2026-03-03',day:'Tuesday'},
+  {d:'2026-03-04',day:'Wednesday'},
+  {d:'2026-03-05',day:'Thursday'},
+  {d:'2026-03-06',day:'Friday'},
+  {d:'2026-03-09',day:'Monday'},
+  {d:'2026-03-10',day:'Tuesday'},
+  {d:'2026-03-11',day:'Wednesday'},
+  {d:'2026-03-12',day:'Thursday'},
+  {d:'2026-03-13',day:'Friday'},
+  {d:'2026-03-16',day:'Monday'},
+  {d:'2026-03-17',day:'Tuesday'},
+  {d:'2026-03-18',day:'Wednesday'},
+  {d:'2026-03-19',day:'Thursday'},
+  {d:'2026-03-20',day:'Friday'},
+  {d:'2026-03-23',day:'Monday'},
+  {d:'2026-03-24',day:'Tuesday'},
+  {d:'2026-03-25',day:'Wednesday'},
+  {d:'2026-03-26',day:'Thursday'},
+  {d:'2026-03-27',day:'Friday'},
+  {d:'2026-03-30',day:'Monday'},
+  {d:'2026-03-31',day:'Tuesday'},
+  {d:'2026-04-01',day:'Wednesday'},
+  {d:'2026-04-02',day:'Thursday'},
+  {d:'2026-04-03',day:'Friday'},
+  {d:'2026-04-06',day:'Monday'},
+  {d:'2026-04-07',day:'Tuesday'},
+  {d:'2026-04-08',day:'Wednesday'},
+  {d:'2026-04-09',day:'Thursday'},
+  {d:'2026-04-10',day:'Friday'},
+  {d:'2026-04-13',day:'Monday'},
+  {d:'2026-04-14',day:'Tuesday'},
+  {d:'2026-04-15',day:'Wednesday'},
+  {d:'2026-04-16',day:'Thursday'},
+  {d:'2026-04-17',day:'Friday'},
+  {d:'2026-04-20',day:'Monday'},
+  {d:'2026-04-21',day:'Tuesday'},
+  {d:'2026-04-22',day:'Wednesday'},
+  {d:'2026-04-23',day:'Thursday'},
+  {d:'2026-04-24',day:'Friday'},
+  {d:'2026-04-27',day:'Monday'},
+  {d:'2026-04-28',day:'Tuesday'},
+  {d:'2026-04-29',day:'Wednesday'},
+  {d:'2026-04-30',day:'Thursday'},
+  {d:'2026-05-01',day:'Friday'},
+  {d:'2026-05-04',day:'Monday'},
+  {d:'2026-05-05',day:'Tuesday'},
+  {d:'2026-05-06',day:'Wednesday'},
+  {d:'2026-05-07',day:'Thursday'},
+  {d:'2026-05-08',day:'Friday'},
+  {d:'2026-05-11',day:'Monday'},
+  {d:'2026-05-12',day:'Tuesday'},
+  {d:'2026-05-13',day:'Wednesday'},
+  {d:'2026-05-14',day:'Thursday'},
+  {d:'2026-05-15',day:'Friday'},
+  {d:'2026-05-18',day:'Monday'},
+  {d:'2026-05-19',day:'Tuesday'},
+  {d:'2026-05-20',day:'Wednesday'},
+  {d:'2026-05-21',day:'Thursday'},
+  {d:'2026-05-22',day:'Friday'},
+  {d:'2026-05-25',day:'Monday'},
+  {d:'2026-05-26',day:'Tuesday'},
+  {d:'2026-05-27',day:'Wednesday'},
+  {d:'2026-05-28',day:'Thursday'},
+  {d:'2026-05-29',day:'Friday'},
+  {d:'2026-06-01',day:'Monday'},
+  {d:'2026-06-02',day:'Tuesday'},
+  {d:'2026-06-03',day:'Wednesday'},
+  {d:'2026-06-04',day:'Thursday'},
+  {d:'2026-06-05',day:'Friday'},
+  {d:'2026-06-08',day:'Monday'},
+  {d:'2026-06-09',day:'Tuesday'},
+  {d:'2026-06-10',day:'Wednesday'},
+  {d:'2026-06-11',day:'Thursday'},
+  {d:'2026-06-12',day:'Friday'},
+  {d:'2026-06-15',day:'Monday'},
+  {d:'2026-06-16',day:'Tuesday'},
+  {d:'2026-06-17',day:'Wednesday'},
+  {d:'2026-06-18',day:'Thursday'},
+  {d:'2026-06-19',day:'Friday'},
+  {d:'2026-06-22',day:'Monday'},
+  {d:'2026-06-23',day:'Tuesday'},
+  {d:'2026-06-24',day:'Wednesday'},
+  {d:'2026-06-25',day:'Thursday'},
+  {d:'2026-06-26',day:'Friday'},
+  {d:'2026-06-29',day:'Monday'},
+  {d:'2026-06-30',day:'Tuesday'},
+  {d:'2026-07-01',day:'Wednesday'},
+  {d:'2026-07-02',day:'Thursday'},
+  {d:'2026-07-03',day:'Friday'},
+  {d:'2026-07-06',day:'Monday'},
+  {d:'2026-07-07',day:'Tuesday'},
+  {d:'2026-07-08',day:'Wednesday'},
+  {d:'2026-07-09',day:'Thursday'},
+  {d:'2026-07-10',day:'Friday'},
+  {d:'2026-07-13',day:'Monday'},
+  {d:'2026-07-14',day:'Tuesday'},
+  {d:'2026-07-15',day:'Wednesday'},
+  {d:'2026-07-16',day:'Thursday'},
+  {d:'2026-07-17',day:'Friday'},
+  {d:'2026-07-20',day:'Monday'},
+  {d:'2026-07-21',day:'Tuesday'},
+  {d:'2026-07-22',day:'Wednesday'},
+  {d:'2026-07-23',day:'Thursday'},
+  {d:'2026-07-24',day:'Friday'},
+  {d:'2026-07-27',day:'Monday'},
+  {d:'2026-07-28',day:'Tuesday'},
+  {d:'2026-07-29',day:'Wednesday'},
+  {d:'2026-07-30',day:'Thursday'},
+  {d:'2026-07-31',day:'Friday'},
+  {d:'2026-08-03',day:'Monday'},
+  {d:'2026-08-04',day:'Tuesday'},
+  {d:'2026-08-05',day:'Wednesday'},
+  {d:'2026-08-06',day:'Thursday'},
+  {d:'2026-08-07',day:'Friday'},
+  {d:'2026-08-10',day:'Monday'},
+  {d:'2026-08-11',day:'Tuesday'},
+  {d:'2026-08-12',day:'Wednesday'},
+  {d:'2026-08-13',day:'Thursday'},
+  {d:'2026-08-14',day:'Friday'},
+  {d:'2026-08-17',day:'Monday'},
+  {d:'2026-08-18',day:'Tuesday'},
+  {d:'2026-08-19',day:'Wednesday'},
+  {d:'2026-08-20',day:'Thursday'},
+  {d:'2026-08-21',day:'Friday'},
+  {d:'2026-08-24',day:'Monday'},
+  {d:'2026-08-25',day:'Tuesday'},
+  {d:'2026-08-26',day:'Wednesday'},
+  {d:'2026-08-27',day:'Thursday'},
+  {d:'2026-08-28',day:'Friday'},
+  {d:'2026-08-31',day:'Monday'},
+  {d:'2026-09-01',day:'Tuesday'},
+  {d:'2026-09-02',day:'Wednesday'},
+  {d:'2026-09-03',day:'Thursday'},
+  {d:'2026-09-04',day:'Friday'},
+  {d:'2026-09-07',day:'Monday'},
+  {d:'2026-09-08',day:'Tuesday'},
+  {d:'2026-09-09',day:'Wednesday'},
+  {d:'2026-09-10',day:'Thursday'},
+  {d:'2026-09-11',day:'Friday'},
+  {d:'2026-09-14',day:'Monday'},
+  {d:'2026-09-15',day:'Tuesday'},
+  {d:'2026-09-16',day:'Wednesday'},
+  {d:'2026-09-17',day:'Thursday'},
+  {d:'2026-09-18',day:'Friday'},
+  {d:'2026-09-21',day:'Monday'},
+  {d:'2026-09-22',day:'Tuesday'},
+  {d:'2026-09-23',day:'Wednesday'},
+  {d:'2026-09-24',day:'Thursday'},
+  {d:'2026-09-25',day:'Friday'},
+  {d:'2026-09-28',day:'Monday'},
+  {d:'2026-09-29',day:'Tuesday'},
+  {d:'2026-09-30',day:'Wednesday'},
+  {d:'2026-10-01',day:'Thursday'},
+  {d:'2026-10-02',day:'Friday'},
+  {d:'2026-10-05',day:'Monday'},
+  {d:'2026-10-06',day:'Tuesday'},
+  {d:'2026-10-07',day:'Wednesday'},
+  {d:'2026-10-08',day:'Thursday'},
+  {d:'2026-10-09',day:'Friday'},
+  {d:'2026-10-12',day:'Monday'},
+  {d:'2026-10-13',day:'Tuesday'},
+  {d:'2026-10-14',day:'Wednesday'},
+  {d:'2026-10-15',day:'Thursday'},
+  {d:'2026-10-16',day:'Friday'},
+  {d:'2026-10-19',day:'Monday'},
+  {d:'2026-10-20',day:'Tuesday'},
+  {d:'2026-10-21',day:'Wednesday'},
+  {d:'2026-10-22',day:'Thursday'},
+  {d:'2026-10-23',day:'Friday'},
+  {d:'2026-10-26',day:'Monday'},
+  {d:'2026-10-27',day:'Tuesday'},
+  {d:'2026-10-28',day:'Wednesday'},
+  {d:'2026-10-29',day:'Thursday'},
+  {d:'2026-10-30',day:'Friday'},
+  {d:'2026-11-02',day:'Monday'},
+  {d:'2026-11-03',day:'Tuesday'},
+  {d:'2026-11-04',day:'Wednesday'},
+  {d:'2026-11-05',day:'Thursday'},
+  {d:'2026-11-06',day:'Friday'},
+  {d:'2026-11-09',day:'Monday'},
+  {d:'2026-11-10',day:'Tuesday'},
+  {d:'2026-11-11',day:'Wednesday'},
+  {d:'2026-11-12',day:'Thursday'},
+  {d:'2026-11-13',day:'Friday'},
+  {d:'2026-11-16',day:'Monday'},
+  {d:'2026-11-17',day:'Tuesday'},
+  {d:'2026-11-18',day:'Wednesday'},
+  {d:'2026-11-19',day:'Thursday'},
+  {d:'2026-11-20',day:'Friday'},
+  {d:'2026-11-23',day:'Monday'},
+  {d:'2026-11-24',day:'Tuesday'},
+  {d:'2026-11-25',day:'Wednesday'},
+  {d:'2026-11-26',day:'Thursday'},
+  {d:'2026-11-27',day:'Friday'},
+  {d:'2026-11-30',day:'Monday'},
+  {d:'2026-12-01',day:'Tuesday'},
+  {d:'2026-12-02',day:'Wednesday'},
+  {d:'2026-12-03',day:'Thursday'},
+  {d:'2026-12-04',day:'Friday'},
+  {d:'2026-12-07',day:'Monday'},
+  {d:'2026-12-08',day:'Tuesday'},
+  {d:'2026-12-09',day:'Wednesday'},
+  {d:'2026-12-10',day:'Thursday'},
+  {d:'2026-12-11',day:'Friday'},
+  {d:'2026-12-14',day:'Monday'},
+  {d:'2026-12-15',day:'Tuesday'},
+  {d:'2026-12-16',day:'Wednesday'},
+  {d:'2026-12-17',day:'Thursday'},
+  {d:'2026-12-18',day:'Friday'},
+  {d:'2026-12-21',day:'Monday'},
+  {d:'2026-12-22',day:'Tuesday'},
+  {d:'2026-12-23',day:'Wednesday'},
+  {d:'2026-12-24',day:'Thursday'},
+  {d:'2026-12-28',day:'Monday'},
+  {d:'2026-12-29',day:'Tuesday'},
+  {d:'2026-12-30',day:'Wednesday'},
+  {d:'2026-12-31',day:'Thursday'},
+];
+
+document.getElementById('totalDays').textContent = TRADING_DAYS.length;
+
+// ── STATE ───────────────────────────────────────────────
+// ── HISTORICAL MONTHLY DATA (Jan 2021 – Feb 2026) ──────────
+// Monthly totals entered as summary on 1st trading day of each month
+// These are BASE entries — user daily entries will override/add on top
+const HISTORICAL_MONTHLY = {
+  // 2021
+  '2021-01-20': { type:'loss',   amount:7464,        instrument:'Monthly', note:'Jan-21 Monthly Total', monthly:true },
+  '2021-02-01': { type:'loss',   amount:963,         instrument:'Monthly', note:'Feb-21 Monthly Total', monthly:true },
+  '2021-03-01': { type:'loss',   amount:23557,       instrument:'Monthly', note:'Mar-21 Monthly Total', monthly:true },
+  '2021-04-01': { type:'loss',   amount:16599,       instrument:'Monthly', note:'Apr-21 Monthly Total', monthly:true },
+  '2021-05-03': { type:'loss',   amount:20016,       instrument:'Monthly', note:'May-21 Monthly Total', monthly:true },
+  '2021-06-01': { type:'loss',   amount:15390,       instrument:'Monthly', note:'Jun-21 Monthly Total', monthly:true },
+  '2021-07-01': { type:'loss',   amount:7578,        instrument:'Monthly', note:'Jul-21 Monthly Total', monthly:true },
+  '2021-08-02': { type:'loss',   amount:17558,       instrument:'Monthly', note:'Aug-21 Monthly Total', monthly:true },
+  '2021-09-01': { type:'loss',   amount:6870,        instrument:'Monthly', note:'Sep-21 Monthly Total', monthly:true },
+  '2021-10-01': { type:'loss',   amount:21930,       instrument:'Monthly', note:'Oct-21 Monthly Total', monthly:true },
+  '2021-11-01': { type:'loss',   amount:5725,        instrument:'Monthly', note:'Nov-21 Monthly Total', monthly:true },
+  '2021-12-01': { type:'loss',   amount:6408,        instrument:'Monthly', note:'Dec-21 Monthly Total', monthly:true },
+  // 2022
+  '2022-01-03': { type:'loss',   amount:4923,        instrument:'Monthly', note:'Jan-22 Monthly Total', monthly:true },
+  '2022-02-01': { type:'loss',   amount:25761,       instrument:'Monthly', note:'Feb-22 Monthly Total', monthly:true },
+  '2022-03-01': { type:'loss',   amount:13116,       instrument:'Monthly', note:'Mar-22 Monthly Total', monthly:true },
+  '2022-04-01': { type:'loss',   amount:11074,       instrument:'Monthly', note:'Apr-22 Monthly Total', monthly:true },
+  '2022-05-02': { type:'loss',   amount:14115,       instrument:'Monthly', note:'May-22 Monthly Total', monthly:true },
+  '2022-06-01': { type:'profit', amount:7051,        instrument:'Monthly', note:'Jun-22 Monthly Total', monthly:true },
+  '2022-07-01': { type:'profit', amount:4397,        instrument:'Monthly', note:'Jul-22 Monthly Total', monthly:true },
+  '2022-08-01': { type:'loss',   amount:67203,       instrument:'Monthly', note:'Aug-22 Monthly Total', monthly:true },
+  '2022-09-01': { type:'loss',   amount:24818,       instrument:'Monthly', note:'Sep-22 Monthly Total', monthly:true },
+  '2022-10-03': { type:'loss',   amount:35466,       instrument:'Monthly', note:'Oct-22 Monthly Total', monthly:true },
+  '2022-11-01': { type:'loss',   amount:12448,       instrument:'Monthly', note:'Nov-22 Monthly Total', monthly:true },
+  '2022-12-01': { type:'loss',   amount:5952,        instrument:'Monthly', note:'Dec-22 Monthly Total', monthly:true },
+  // 2023
+  '2023-01-02': { type:'profit', amount:22706,       instrument:'Monthly', note:'Jan-23 Monthly Total', monthly:true },
+  '2023-06-01': { type:'loss',   amount:66391,       instrument:'Monthly', note:'Jun-23 Monthly Total', monthly:true },
+  '2023-07-03': { type:'profit', amount:13753,       instrument:'Monthly', note:'Jul-23 Monthly Total', monthly:true },
+  '2023-08-01': { type:'loss',   amount:65675,       instrument:'Monthly', note:'Aug-23 Monthly Total', monthly:true },
+  '2023-09-01': { type:'profit', amount:63157,       instrument:'Monthly', note:'Sep-23 Monthly Total', monthly:true },
+  '2023-10-02': { type:'loss',   amount:205349,      instrument:'Monthly', note:'Oct-23 Monthly Total', monthly:true },
+  '2023-11-01': { type:'loss',   amount:73525,       instrument:'Monthly', note:'Nov-23 Monthly Total', monthly:true },
+  '2023-12-01': { type:'profit', amount:45675,       instrument:'Monthly', note:'Dec-23 Monthly Total', monthly:true },
+  // 2024
+  '2024-01-01': { type:'loss',   amount:273681,      instrument:'Monthly', note:'Jan-24 Monthly Total', monthly:true },
+  '2024-02-01': { type:'loss',   amount:188517,      instrument:'Monthly', note:'Feb-24 Monthly Total', monthly:true },
+  '2024-03-01': { type:'profit', amount:27599,       instrument:'Monthly', note:'Mar-24 Monthly Total', monthly:true },
+  '2024-04-01': { type:'profit', amount:348708,      instrument:'Monthly', note:'Apr-24 Monthly Total', monthly:true },
+  '2024-05-02': { type:'loss',   amount:362512,      instrument:'Monthly', note:'May-24 Monthly Total', monthly:true },
+  '2024-06-03': { type:'loss',   amount:313107,      instrument:'Monthly', note:'Jun-24 Monthly Total', monthly:true },
+  '2024-07-01': { type:'profit', amount:46227,       instrument:'Monthly', note:'Jul-24 Monthly Total', monthly:true },
+  '2024-08-01': { type:'profit', amount:39885,       instrument:'Monthly', note:'Aug-24 Monthly Total', monthly:true },
+  '2024-09-02': { type:'loss',   amount:307611,      instrument:'Monthly', note:'Sep-24 Monthly Total', monthly:true },
+  '2024-10-01': { type:'loss',   amount:267173,      instrument:'Monthly', note:'Oct-24 Monthly Total', monthly:true },
+  '2024-11-01': { type:'loss',   amount:217383,      instrument:'Monthly', note:'Nov-24 Monthly Total', monthly:true },
+  '2024-12-02': { type:'loss',   amount:44325.31,    instrument:'Monthly', note:'Dec-24 Monthly Total', monthly:true },
+  // 2025
+  '2025-01-01': { type:'loss',   amount:212523,      instrument:'Monthly', note:'Jan-25 Monthly Total', monthly:true },
+  '2025-02-03': { type:'loss',   amount:154410,      instrument:'Monthly', note:'Feb-25 Monthly Total', monthly:true },
+  '2025-03-03': { type:'loss',   amount:128244,      instrument:'Monthly', note:'Mar-25 Monthly Total', monthly:true },
+  '2025-04-01': { type:'loss',   amount:230058,      instrument:'Monthly', note:'Apr-25 Monthly Total', monthly:true },
+  '2025-05-01': { type:'loss',   amount:138492,      instrument:'Monthly', note:'May-25 Monthly Total', monthly:true },
+  '2025-06-02': { type:'loss',   amount:22395,       instrument:'Monthly', note:'Jun-25 Monthly Total', monthly:true },
+  '2025-07-01': { type:'loss',   amount:411184,      instrument:'Monthly', note:'Jul-25 Monthly Total', monthly:true },
+  '2025-08-01': { type:'loss',   amount:75394,       instrument:'Monthly', note:'Aug-25 Monthly Total', monthly:true },
+  '2025-09-01': { type:'loss',   amount:65255,       instrument:'Monthly', note:'Sep-25 Monthly Total', monthly:true },
+  '2025-10-01': { type:'loss',   amount:54179.3344,  instrument:'Monthly', note:'Oct-25 Monthly Total', monthly:true },
+  '2025-11-03': { type:'loss',   amount:195036.6215, instrument:'Monthly', note:'Nov-25 Monthly Total', monthly:true },
+  '2025-12-01': { type:'profit', amount:16569.84,    instrument:'Monthly', note:'Dec-25 Monthly Total', monthly:true },
+  // 2026 (actual data available)
+  '2026-01-20': { type:'loss',   amount:23189.27,    instrument:'Monthly', note:'Jan-26 Monthly Total', monthly:true },
+  '2026-02-20': { type:'loss',   amount:145483.61,   instrument:'Monthly', note:'Feb-26 Monthly Total', monthly:true },
+};
+
+// Load from localStorage, then merge historical (historical = base, user entries = override)
+const savedEntries = JSON.parse(localStorage.getItem('nse_journal_2026') || '{}');
+// Merge: historical first, then user saved entries override
+let entries = Object.assign({}, HISTORICAL_MONTHLY, savedEntries);
+
+let selectedDate = null;
+let entryType = 'profit';
+let currentChartView = 'daily';
+let mainChart = null;
+let filterMonthVal = 'ALL';
+
+const TODAY = new Date().toISOString().split('T')[0];
+
+// ── HELPERS ─────────────────────────────────────────────
+function save() {
+  // Only save user-added/modified entries (not pure historical monthly ones)
+  const toSave = {};
+  for (const [k, v] of Object.entries(entries)) {
+    if (!v.monthly || savedEntries[k]) toSave[k] = v;
+  }
+  localStorage.setItem('nse_journal_2026', JSON.stringify(toSave));
+}
+
+function fmtDate(d) {
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+}
+
+function fmtAmt(n, sign=false) {
+  const abs = Math.abs(n);
+  let s;
+  if (abs >= 100000) s = '₹' + (abs/100000).toFixed(2) + 'L';
+  else if (abs >= 1000) s = '₹' + (abs/1000).toFixed(1) + 'K';
+  else s = '₹' + abs.toFixed(0);
+  if (sign) s = (n >= 0 ? '+' : '-') + s;
+  return s;
+}
+
+function getPL(dateStr) {
+  const e = entries[dateStr];
+  if (!e) return null;
+  return e.type === 'profit' ? e.amount : -e.amount;
+}
+
+function getTotal() {
+  return Object.values(entries).reduce((s, e) => s + (e.type === 'profit' ? e.amount : -e.amount), 0);
+}
+
+function calcStreak() {
+  let streak = 0, streakType = null;
+  const past = TRADING_DAYS.filter(t => t.d <= TODAY).reverse();
+  for (const t of past) {
+    const pl = getPL(t.d);
+    if (pl === null) break;
+    if (streak === 0) { streak = 1; streakType = pl >= 0 ? 'profit' : 'loss'; }
+    else if ((pl >= 0 && streakType === 'profit') || (pl < 0 && streakType === 'loss')) streak++;
+    else break;
+  }
+  return { streak, streakType };
+}
+
+// ── RENDER SIDEBAR ──────────────────────────────────────
+function renderSidebar() {
+  const list = document.getElementById('dateList');
+  const days = filterMonthVal === 'ALL' ? TRADING_DAYS : TRADING_DAYS.filter(t => t.d.startsWith(filterMonthVal));
+
+  list.innerHTML = days.map(t => {
+    const pl = getPL(t.d);
+    const isSelected = t.d === selectedDate;
+    const isToday = t.d === TODAY;
+    let valHtml = `<span class="di-val empty">—</span>`;
+    let dotHtml = '';
+    if (pl !== null) {
+      const cls = pl >= 0 ? 'profit' : 'loss';
+      valHtml = `<span class="di-val ${cls}">${fmtAmt(pl, true)}</span>`;
+      dotHtml = `<div class="dot ${cls}"></div>`;
+    }
+    return `<div class="date-item ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}"
+      onclick="selectDate('${t.d}','${t.day}')">
+      ${dotHtml}
+      <div style="padding-left:${dotHtml ? '10px' : '0'}">
+        <div class="di-date">${fmtDate(t.d)}</div>
+        <div class="di-day">${t.day.toUpperCase()}</div>
+      </div>
+      ${valHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── SELECT DATE ─────────────────────────────────────────
+function selectDate(dateStr, dayName) {
+  selectedDate = dateStr;
+  document.getElementById('selectedDateLabel').textContent = fmtDate(dateStr) + ' · ' + dayName.toUpperCase();
+
+  // Load existing entry if any
+  const e = entries[dateStr];
+  if (e) {
+    setEntryType(e.type);
+    document.getElementById('entryAmt').value = e.amount;
+    document.getElementById('entryInstr').value = e.instrument || 'NIFTY';
+    document.getElementById('entryNote').value = e.note || '';
+  } else {
+    clearEntry();
+  }
+  renderSidebar();
+}
+
+// ── ENTRY TYPE ──────────────────────────────────────────
+function setEntryType(type) {
+  entryType = type;
+  document.getElementById('entryType').value = type;
+  document.getElementById('btnProfit').className = 'type-btn' + (type === 'profit' ? ' profit-active' : '');
+  document.getElementById('btnLoss').className = 'type-btn' + (type === 'loss' ? ' loss-active' : '');
+  document.getElementById('entryAmt').className = type === 'loss' ? 'loss-mode' : '';
+}
+
+// ── SAVE ENTRY ──────────────────────────────────────────
+function saveEntry() {
+  if (!selectedDate) { showToast('Pehle ek date select karo!', 'info'); return; }
+  const amt = parseFloat(document.getElementById('entryAmt').value);
+  if (!amt || amt <= 0) { showToast('Amount daalo bhai!', 'info'); return; }
+
+  entries[selectedDate] = {
+    type: entryType,
+    amount: amt,
+    instrument: document.getElementById('entryInstr').value,
+    note: document.getElementById('entryNote').value,
+    savedAt: new Date().toISOString()
+  };
+  save();
+  renderSidebar();
+  renderStats();
+  renderStreak();
+  showToast(entryType === 'profit' ? `+₹${amt.toLocaleString('en-IN')} PROFIT SAVED! 🚀` : `-₹${amt.toLocaleString('en-IN')} LOSS LOGGED`, entryType);
+  if (currentChartView) renderChart(currentChartView);
+  renderHistory();
+}
+
+// ── CLEAR ENTRY ─────────────────────────────────────────
+function clearEntry() {
+  setEntryType('profit');
+  document.getElementById('entryAmt').value = '';
+  document.getElementById('entryNote').value = '';
+  document.getElementById('entryInstr').value = 'NIFTY';
+}
+
+// ── STATS ────────────────────────────────────────────────
+function renderStats() {
+  const allEntries = Object.values(entries);
+  const profitEntries = allEntries.filter(e => e.type === 'profit');
+  const lossEntries   = allEntries.filter(e => e.type === 'loss');
+
+  const totalProfit = profitEntries.reduce((s,e) => s + e.amount, 0);
+  const totalLoss   = lossEntries.reduce((s,e) => s + e.amount, 0);
+  const total       = totalProfit - totalLoss;  // net P&L
+
+  const winRate = allEntries.length > 0 ? Math.round((profitEntries.length / allEntries.length) * 100) : 0;
+  const logged  = TRADING_DAYS.filter(t => entries[t.d] && !entries[t.d].monthly).length;
+
+  // Year-wise breakdown for tooltip/display
+  const yr2026entries = Object.entries(entries).filter(([k]) => k.startsWith('2026'));
+  const total2026 = yr2026entries.reduce((s,[,e]) => s + (e.type==='profit' ? e.amount : -e.amount), 0);
+
+  const statsHtml = `
+    <div class="stat-box ${total >= 0 ? 'profit' : 'loss'}">
+      <div class="sb-label">All-Time Net P&L</div>
+      <div class="sb-val ${total >= 0 ? 'p' : 'l'}">${fmtAmt(total, true)}</div>
+    </div>
+    <div class="stat-box profit">
+      <div class="sb-label">Gross Profit</div>
+      <div class="sb-val p">+${fmtAmt(totalProfit)}</div>
+    </div>
+    <div class="stat-box loss">
+      <div class="sb-label">Gross Loss</div>
+      <div class="sb-val l">-${fmtAmt(totalLoss)}</div>
+    </div>
+    <div class="stat-box ${total2026 >= 0 ? 'profit' : 'loss'}">
+      <div class="sb-label">2026 Net P&L</div>
+      <div class="sb-val ${total2026 >= 0 ? 'p' : 'l'}">${fmtAmt(total2026, true)}</div>
+    </div>
+    <div class="stat-box blue">
+      <div class="sb-label">Win Rate</div>
+      <div class="sb-val b">${winRate}% (${profitEntries.length}W/${lossEntries.length}L)</div>
+    </div>
+  `;
+  document.getElementById('statsGrid').innerHTML = statsHtml;
+  document.getElementById('statsGrid2').innerHTML = statsHtml;
+
+  const hc = document.getElementById('historyCount');
+  if (hc) hc.textContent = Object.keys(entries).length + ' ENTRIES';
+}
+
+// ── STREAK ───────────────────────────────────────────────
+function renderStreak() {
+  const { streak, streakType } = calcStreak();
+  const badge = document.getElementById('streakBadge');
+  if (streak >= 2) {
+    const icon = streakType === 'profit' ? '🔥' : '❄️';
+    const cls = streakType === 'profit' ? 'fire' : 'cold';
+    badge.innerHTML = `<span class="streak-badge ${cls}">${icon} ${streak}-DAY ${streakType.toUpperCase()} STREAK</span>`;
+  } else {
+    badge.innerHTML = '';
+  }
+}
+
+// ── CHARTS ───────────────────────────────────────────────
+function switchChart(view) {
+  currentChartView = view;
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderChart(view);
+}
+
+function renderChart(view) {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if (mainChart) mainChart.destroy();
+
+  let labels = [], data = [], colors = [], borders = [];
+
+  // All entries sorted by date
+  const allDates = Object.keys(entries).sort();
+
+  if (view === 'daily') {
+    document.getElementById('chartLabel').textContent = 'DAILY P&L — ALL TIME';
+    allDates.forEach(d => {
+      const e = entries[d];
+      const pl = e.type === 'profit' ? e.amount : -e.amount;
+      const dt = new Date(d + 'T00:00:00');
+      labels.push(dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'2-digit'}));
+      data.push(pl);
+      colors.push(pl >= 0 ? 'rgba(0,255,170,0.75)' : 'rgba(255,45,85,0.75)');
+      borders.push(pl >= 0 ? '#00ffaa' : '#ff2d55');
+    });
+  }
+
+  else if (view === 'weekly') {
+    document.getElementById('chartLabel').textContent = 'WEEKLY P&L — ALL TIME';
+    const weeks = {};
+    allDates.forEach(d => {
+      const dt = new Date(d + 'T00:00:00');
+      const mon = new Date(dt);
+      mon.setDate(dt.getDate() - ((dt.getDay() + 6) % 7)); // Monday
+      const wk = mon.toISOString().split('T')[0];
+      if (!weeks[wk]) weeks[wk] = 0;
+      const e = entries[d];
+      weeks[wk] += e.type === 'profit' ? e.amount : -e.amount;
+    });
+    Object.entries(weeks).sort().forEach(([wk, val]) => {
+      const dt = new Date(wk + 'T00:00:00');
+      labels.push(dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'2-digit'}));
+      data.push(val);
+      colors.push(val >= 0 ? 'rgba(0,255,170,0.75)' : 'rgba(255,45,85,0.75)');
+      borders.push(val >= 0 ? '#00ffaa' : '#ff2d55');
+    });
+  }
+
+  else if (view === 'monthly') {
+    document.getElementById('chartLabel').textContent = 'MONTHLY P&L — ALL TIME';
+    const months = {};
+    allDates.forEach(d => {
+      const mo = d.slice(0, 7);
+      if (!months[mo]) months[mo] = 0;
+      const e = entries[d];
+      months[mo] += e.type === 'profit' ? e.amount : -e.amount;
+    });
+    Object.entries(months).sort().forEach(([mo, val]) => {
+      const dt = new Date(mo + '-01T00:00:00');
+      labels.push(dt.toLocaleDateString('en-IN', {month:'short', year:'2-digit'}));
+      data.push(val);
+      colors.push(val >= 0 ? 'rgba(0,255,170,0.75)' : 'rgba(255,45,85,0.75)');
+      borders.push(val >= 0 ? '#00ffaa' : '#ff2d55');
+    });
+  }
+
+  else if (view === 'cumulative') {
+    document.getElementById('chartLabel').textContent = 'CUMULATIVE P&L — ALL TIME';
+    let cum = 0;
+    allDates.forEach(d => {
+      const e = entries[d];
+      cum += e.type === 'profit' ? e.amount : -e.amount;
+      const dt = new Date(d + 'T00:00:00');
+      labels.push(dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'2-digit'}));
+      data.push(parseFloat(cum.toFixed(2)));
+      colors.push(cum >= 0 ? 'rgba(77,171,247,0.7)' : 'rgba(255,45,85,0.7)');
+      borders.push(cum >= 0 ? '#4dabf7' : '#ff2d55');
+    });
+  }
+
+  if (data.length === 0) return;
+
+  const isLine = view === 'cumulative';
+
+  mainChart = new Chart(ctx, {
+    type: isLine ? 'line' : 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: isLine ? 'rgba(77,171,247,0.1)' : colors,
+        borderColor: isLine ? '#4dabf7' : borders,
+        borderWidth: isLine ? 2 : 1.5,
+        borderRadius: isLine ? 0 : 6,
+        borderSkipped: false,
+        fill: isLine,
+        tension: 0.3,
+        pointRadius: isLine ? 2 : 0,
+        pointBackgroundColor: '#4dabf7',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 500, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f0f18',
+          borderColor: '#252540',
+          borderWidth: 1,
+          titleColor: '#6a6a90',
+          bodyColor: '#c8cce8',
+          padding: 12,
+          cornerRadius: 10,
+          titleFont: { family: 'Share Tech Mono', size: 11 },
+          bodyFont: { family: 'Share Tech Mono', size: 13, weight: '700' },
+          callbacks: {
+            label: ctx => {
+              const v = ctx.raw;
+              return (v >= 0 ? '  +₹' : '  -₹') + Math.abs(v).toLocaleString('en-IN', {maximumFractionDigits:2});
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#454560', font: { family: 'Share Tech Mono', size: 9 }, maxRotation: 60, maxTicksLimit: 30 },
+          grid: { color: 'rgba(255,255,255,0.03)' },
+          border: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          ticks: {
+            color: '#454560',
+            font: { family: 'Share Tech Mono', size: 10 },
+            callback: v => {
+              const abs = Math.abs(v);
+              if (abs >= 100000) return (v<0?'-':'') + (abs/100000).toFixed(1)+'L';
+              if (abs >= 1000) return (v<0?'-':'') + (abs/1000).toFixed(0)+'K';
+              return v;
+            }
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          border: { color: 'rgba(255,255,255,0.05)', dash: [4,4] }
+        }
+      }
+    }
+  });
+}
+
+// ── HISTORY ──────────────────────────────────────────────
+function renderHistory() {
+  const body = document.getElementById('historyBody');
+  const entered = TRADING_DAYS.filter(t => entries[t.d]).reverse();
+  // Also show historical entries not on trading days list (2021-2025)
+  const histKeys = Object.keys(entries).filter(k => !TRADING_DAYS.find(t => t.d === k)).sort().reverse();
+
+  if (!entered.length && !histKeys.length) {
+    body.innerHTML = '<div class="empty-rows">Abhi koi entry nahi hai.<br>Journal tab mein dates pe click karke entries dalo! 📊</div>';
+    return;
+  }
+
+  const renderRow = (dateStr, dayName, e) => {
+    const pl = e.type === 'profit' ? e.amount : -e.amount;
+    const cls = pl >= 0 ? 'tr-profit' : 'tr-loss';
+    const sign = pl >= 0 ? '+' : '-';
+    const badge = e.monthly ? ' <span style="font-size:0.6rem;background:rgba(77,171,247,0.15);color:var(--blue);border:1px solid var(--blue);border-radius:4px;padding:1px 5px;">MONTHLY</span>' : '';
+    const noteText = e.note ? e.note : '';
+    return `<div class="table-row">
+      <span>${fmtDate(dateStr)}</span>
+      <span style="color:var(--dim2)">${dayName ? dayName.slice(0,3).toUpperCase() : '—'}</span>
+      <span style="color:var(--blue)">${e.instrument || 'NIFTY'}</span>
+      <span class="${cls}">${e.type.toUpperCase()}</span>
+      <span class="${cls}">${sign}₹${Math.abs(pl).toLocaleString('en-IN', {maximumFractionDigits:2})}${noteText ? ' · ' + noteText : ''}${badge}</span>
+      <span>${!e.monthly ? `<button class="del-btn" onclick="deleteEntry('${dateStr}')">DEL</button>` : ''}</span>
+    </div>`;
+  };
+
+  let html = entered.map(t => renderRow(t.d, t.day, entries[t.d])).join('');
+  html += histKeys.map(k => renderRow(k, null, entries[k])).join('');
+  body.innerHTML = html;
+
+  const total = entered.length + histKeys.length;
+  document.getElementById('historyCount').textContent = total + ' ENTRIES';
+}
+
+function deleteEntry(dateStr) {
+  if (!confirm('Delete karna hai kya?')) return;
+  delete entries[dateStr];
+  save();
+  renderSidebar();
+  renderStats();
+  renderStreak();
+  renderHistory();
+  if (mainChart) renderChart(currentChartView);
+  showToast('Entry deleted', 'info');
+}
+
+// ── TOAST ────────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+// ── VIEW SWITCH ──────────────────────────────────────────
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  if (v === 'charts') { renderChart(currentChartView); }
+  if (v === 'history') renderHistory();
+}
+
+function filterMonth() {
+  filterMonthVal = document.getElementById('monthFilter').value;
+  renderSidebar();
+}
+
+// ── AUTO SELECT TODAY ─────────────────────────────────────
+function autoSelectToday() {
+  const todayEntry = TRADING_DAYS.find(t => t.d === TODAY);
+  if (todayEntry) {
+    selectDate(todayEntry.d, todayEntry.day);
+    // Scroll to it
+    setTimeout(() => {
+      const list = document.getElementById('dateList');
+      const items = list.querySelectorAll('.date-item');
+      const idx = TRADING_DAYS.findIndex(t => t.d === TODAY);
+      if (items[idx]) items[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  } else {
+    // Select first available future date
+    const next = TRADING_DAYS.find(t => t.d >= TODAY);
+    if (next) selectDate(next.d, next.day);
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────
+renderSidebar();
+renderStats();
+renderStreak();
+renderHistory();
+autoSelectToday();
+</script>
+</body>
+</html>
